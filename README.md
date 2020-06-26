@@ -30,9 +30,7 @@ chromosomes id. If it is a real problem, I can of course figure out a
 tweak around it. Hence, let me know.
 
 The procedure is quite slow as it deals with big files and there are
-quite a few iterations (3h per benchmark). It would be of interest to
-parallelize the script, but I haven't found the courage yet for that. I
-also attach the source code of the script to this email.
+quite a few iterations (3h per benchmark). I would thus advise to make use of the multithreading options (-T).
 
 
 ## INSTALLATION
@@ -54,7 +52,7 @@ docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
 /my/home/absolute/path/:/my/home/absolute/path/:rw besolverd.py -h
 ```
 
-### Example run on cell line N124385 with hg38 genome build
+### Example run on cell line NA24385 with hg38 genome build
 
 ```
 docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
@@ -71,3 +69,6 @@ I have been the only developer of the script so it might contain error.
 I won't be offended if you ask that I adapt, correct or add something to
 the script. Of course, you can also modify the script yourself (even if
 it is never a pleasure to dig into the awful python code of someone else).
+
+Genome build hg19/37 may or may not contain a chr prefix before the chromosome name. If you have that prefix in the VCF and BAM files, you shoud use ```-g hg37chr``` option.
+
