@@ -122,6 +122,7 @@ def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, samp
     elif dataPath is not None and downloadReference:
         print("Must not specify both a directory with reference files and ask for the reference files to be download (--downloadReference and --dataPath options must not be used together")
         exit;
+    mosdepth_fasta = ""
     if iscram:
         mosdepth_fasta = " -f "+fastaGenome +" "
 
