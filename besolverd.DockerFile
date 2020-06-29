@@ -47,6 +47,6 @@ RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg38.vcf.gz
 RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg38.vcf.gz.tbi
 
 WORKDIR /besolverd
-COPY besolverd.py .
+RUN wget https://raw.githubusercontent.com/sybrohee/besolverd/master/besolverd.py -O besolverd.py
 
 

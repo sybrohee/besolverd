@@ -53,7 +53,7 @@ def alignAndBenchMark(queryVcfFile, refVcfFile,refBedFile,base_coverage_file, sd
     print("Analyzing with min coverage " + threshold + "... Done")
 
 def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, sample,  outputPrefix, mosdepthPath, rtgtoolsPath, bedtoolsPath,dataPath, downloadReference):
-
+    iscram = False;
     # check file existence
     if not os.path.exists(queryVcfFile):
         print("Error : Mandatory file queryVcfFile " + queryVcfFile + " does not exist")
@@ -78,6 +78,7 @@ def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, samp
             exit(0);        
     elif re.search("\.cram$", queryBamFile) is not None:
         # check if cram file is indexed
+        iscram = True
         queryBamFileIndex = queryBamFile + ".crai"
         queryBamFileIndex2 = queryBamFile[:-1] + "i"        
         if (not os.path.exists(queryBamFileIndex) and not os.path.exists(queryBamFileIndex2)):
@@ -121,7 +122,8 @@ def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, samp
     elif dataPath is not None and downloadReference:
         print("Must not specify both a directory with reference files and ask for the reference files to be download (--downloadReference and --dataPath options must not be used together")
         exit;
-
+    if iscram:
+        mosdepth_fasta = " -f "+fastaGenome +" "
 
     # from genome build get the GIAB bed file of high confidence regions
     refPrefix =  os.path.join(dataPath, sample + "_" + genomeBuild)
@@ -132,7 +134,7 @@ def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, samp
     mosdepth_perbase = mosdepth_prefix+".per-base.bed.gz"
     mosdepth_summary = mosdepth_prefix+".summary.txt"
     cmds = ["mkdir -p " +  os.path.dirname(outputPrefix)]
-    cmds += [mosdepthExec + " --threads " + str(maxthreads-1) +" -Q 1 -x " + mosdepth_prefix + " '"+queryBamFile+"'"]
+    cmds += [mosdepthExec + " --threads " + str(maxthreads-1) +mosdepth_fasta+" -Q 1 -x " + mosdepth_prefix + " '"+queryBamFile+"'"]
     # from fasta file create the sdf file on the fly
     sdf =  outputPrefix+".sdf"
     cmds += [rtgtoolsExec + " format '" + fastaGenome + "' -o "  + sdf]
