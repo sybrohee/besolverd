@@ -161,15 +161,19 @@ def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, samp
 
     results_file =     outputPrefix + "_results.tab"
     cmds = []
-    cmds += ["echo  \"\\tThreshold\\tTrue-pos-baseline\\tTrue-pos-call\\tFalse-pos\tFalse-neg\\tPrecision\\tSensitivity\\tF-measure\" > " +  results_file]
-    cmds += ["find " + os.path.dirname(outputPrefix) + " -name '*summary.txt' | grep Eval | xargs awk '{print FILENAME $0}' | grep None | perl -pe 's/ +/\\t/' | perl -pe 's/summary.txt//' | perl -pe 's/_vcfEval//' | sort >> " + results_file]
+    cmds += ["echo  \"\\tfileName\\tThreshold\\tTrue-pos-baseline\\tTrue-pos-call\\tFalse-pos\\tFalse-neg\\tPrecision\\tSensitivity\\tF-measure\" > " +  results_file]
+    cmds += ["find " + os.path.dirname(outputPrefix) + " -name '*summary.txt' | grep Eval | xargs awk '{print FILENAME $0}' | grep None | perl -pe 's/ +/\\t/' | perl -pe 's/summary.txt//' | perl -pe 's/_vcfEval//'   | sort > results.tmp"]
+    cmds += [" cat results.tmp | cut -f 1 | perl -pe 's/.*minCov([0-9]+)\/$/$1/' > left"]
+    cmds += ["paste left results.tmp | sort -n >> " + results_file]
+    cmds += ["rm  results.tmp left" ]
+    
     output = subprocess.check_output("; ".join(cmds), shell=True, stderr=subprocess.STDOUT)
     print (output)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-q","--queryVcfFile",help="query vcf file", required=True)
-    parser.add_argument("-b","--queryBamFile",help="query bam file", required=True)
+    parser.add_argument("-q","--queryVcfFile",help="query vcf file (must be gzipped and indexed)", required=True)
+    parser.add_argument("-b","--queryBamFile",help="query bam/cram file (must be indexed)", required=True)
     parser.add_argument("-g","--genomeBuild" ,help="genome build",required=True,   choices=['hg38', 'hg37', 'hg37chr'])
     parser.add_argument("-o","--outputPrefix",help="output files prefix",required=True)
     parser.add_argument("-f","--fastaGenome",help="used reference genome fasta file", required=True)
