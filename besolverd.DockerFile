@@ -25,9 +25,28 @@ COPY rtg.cfg /rtg-tools-3.11/
 ENV PATH="/rtg-tools-3.11:/mosdepth:${PATH}"
 
 # SCRIPT DIR
-RUN mkdir -p besolverd/data
-WORKDIR besolverd
-COPY data/* data/
+RUN mkdir -p /besolverd/data
+WORKDIR besolverd/data
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg37.bed
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg37chr.bed
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg37chr.vcf.gz
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg37chr.vcf.gz.tbi
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg37.vcf.gz
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg37.vcf.gz.tbi
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg38.bed
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg38.vcf.gz
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA12878_hg38.vcf.gz.tbi
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg37.bed
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg37chr.bed
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg37chr.vcf.gz
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg37chr.vcf.gz.tbi
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg37.vcf.gz
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg37.vcf.gz.tbi
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg38.bed
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg38.vcf.gz
+RUN wget https://storage.googleapis.com/besolverd/giab_data/NA24385_hg38.vcf.gz.tbi
+
+WORKDIR /besolverd
 COPY besolverd.py .
 
 

@@ -19,6 +19,29 @@ def stringIsInt(s):
     except ValueError:
         return False
 
+def downloadAndParseReferences(sample, build, dataPath):
+    google_repo = "https://storage.googleapis.com/besolverd/giab_data/";
+    commands = [];
+    filename = sample+"_"+build
+    prefix_url = google_repo + sample+"_"+build;
+    vcf = filename+".vcf.gz"
+    vcf_index = vcf+".tbi"
+    bed = filename+".bed"
+    vcf_url = google_rep + vcf;
+    vcf_output_url = os.path.join(dataPath, vcf)
+    command = "wget " + file_url + " -O " + vcf_output_url;
+    commands.append(command);
+    vcf_index_url = google_rep + vcf_index;
+    vcf_index_output_url = os.path.join(dataPath, vcf_index)
+    command = "wget " + vcf_index_url + " -O " + vcf_index_output_url;    
+    commands.append(command);
+    bed_url = google_rep + bed;
+    bed_output_url = os.path.join(dataPath, bed)
+    command = "wget " + bed_url + " -O " + bed_output_url;    
+    commands.append(command);    
+    subprocess.check_output("; ".join(commands), shell=True, stderr=subprocess.STDOUT)
+
+
 def alignAndBenchMark(queryVcfFile, refVcfFile,refBedFile,base_coverage_file, sdf,  threshold, outputPrefix, bedtoolsExec, rtgtoolsExec):
     print("Analyzing with min coverage " + threshold)
     bedIntersect_file = outputPrefix+"_minCov"+threshold+".highconfIntersect.bed";
@@ -29,7 +52,7 @@ def alignAndBenchMark(queryVcfFile, refVcfFile,refBedFile,base_coverage_file, sd
     output = subprocess.check_output("; ".join(cmds), shell=True, stderr=subprocess.STDOUT)
     print("Analyzing with min coverage " + threshold + "... Done")
 
-def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, sample,  outputPrefix, mosdepthPath, rtgtoolsPath, bedtoolsPath,dataPath):
+def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, sample,  outputPrefix, mosdepthPath, rtgtoolsPath, bedtoolsPath,dataPath, downloadReference):
 
     # check file existence
     if not os.path.exists(queryVcfFile):
@@ -39,8 +62,28 @@ def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, samp
         print("Error : Mandatory file fastaGenome " + fastaGenome + " does not exist")
         exit(0); 
     if not os.path.exists(queryBamFile):
-        print("Error : Mandatory file queryBamFile " + queryBamFile + " does not exist")
+        print("Error : Mandatory alignment file (bam/cram) " + queryBamFile + " does not exist")
         exit(0);
+
+    if re.search("\.bam$", queryBamFile) is None and re.search("\.cram$", queryBamFile) is None :
+        print("Error : Mandatory alignment file (bam/cram) " + queryBamFile + " does not seem to be valid as it does not ends with bam or cram extension")
+        exit(0)        
+    # check if alignment file is bam or cram    
+    if re.search("\.bam$", queryBamFile) is not None:
+        # check if bam file is indexed
+        queryBamFileIndex = queryBamFile + ".bai"
+        queryBamFileIndex2 = queryBamFile[:-1] + "i"        
+        if (not os.path.exists(queryBamFileIndex) and not os.path.exists(queryBamFileIndex2)):
+            print("Error : Mandatory alignement BAM file " + queryBamFile + " does not seem to be indexed")
+            exit(0);        
+    elif re.search("\.cram$", queryBamFile) is not None:
+        # check if cram file is indexed
+        queryBamFileIndex = queryBamFile + ".crai"
+        queryBamFileIndex2 = queryBamFile[:-1] + "i"        
+        if (not os.path.exists(queryBamFileIndex) and not os.path.exists(queryBamFileIndex2)):
+            print("Error : Mandatory alignement CRAM file " + queryBamFile + " does not seem to be indexed")
+            exit(0);         
+    
     if os.path.exists(os.path.dirname(outputPrefix)):
         print("Error : Output directory " + os.path.dirname(outputPrefix) + " already exists")
         exit(0);
@@ -70,8 +113,16 @@ def main(queryVcfFile,queryBamFile, genomeBuild, nbthreadsStr, fastaGenome, samp
         mosdepthExec = mosdepthPath+"/"+mosdepthExec;
     if rtgtoolsPath is not None:
         rtgtoolsExec = rtgtoolsPath+"/"+rtgtoolsExec;
-    if dataPath is None:
+    if dataPath is None and not downloadReference:
         dataPath = os.path.join(current_dir, "data");
+    elif dataPath is None and downloadReference:
+        datapath = os.path.dirname(outputPrefix)
+        downloadAndParseReferences(sample, genomeBuild, datapath)
+    elif dataPath is not None and downloadReference:
+        print("Must not specify both a directory with reference files and ask for the reference files to be download (--downloadReference and --dataPath options must not be used together")
+        exit;
+
+
     # from genome build get the GIAB bed file of high confidence regions
     refPrefix =  os.path.join(dataPath, sample + "_" + genomeBuild)
     refVcfFile = refPrefix + ".vcf.gz"
@@ -124,7 +175,8 @@ if __name__ == "__main__":
     parser.add_argument("-f","--fastaGenome",help="used reference genome fasta file", required=True)
     parser.add_argument("-m","--mosdepthPath",help="path to mosdepth executable",required=False, default = None)
     parser.add_argument("-t","--rtgtoolsPath",help="path to rtg-tools executable",required=False, default = None)    
-    parser.add_argument("-d","--dataPath",help="path to reference file",required=False, default = None)    
+    parser.add_argument("-d","--dataPath",help="path to reference files",required=False, default = None)    
+    parser.add_argument("-e","--downloadReference",help="should the reference files be downloaded",required=False, action='store_true')    
     parser.add_argument("-u","--sample",help="sample name",required=True, default = None,  choices=['NA12878', 'NA24385'])
     parser.add_argument("-c","--bedtoolsPath",help="path to bedtools",required=False, default = None) 
     parser.add_argument("-T","--nbthreads",help="number of threads",required=False, default = "1") 
@@ -133,7 +185,7 @@ if __name__ == "__main__":
     
 
     
-    main(args.queryVcfFile, args.queryBamFile, args.genomeBuild,args.nbthreads, args.fastaGenome, args.sample, args.outputPrefix, args.mosdepthPath,  args.rtgtoolsPath, args.bedtoolsPath, args.dataPath)
+    main(args.queryVcfFile, args.queryBamFile, args.genomeBuild,args.nbthreads, args.fastaGenome, args.sample, args.outputPrefix, args.mosdepthPath,  args.rtgtoolsPath, args.bedtoolsPath, args.dataPath, args.downloadReference)
 
 
 
