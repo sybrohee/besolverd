@@ -14,6 +14,7 @@ RUN wget 'https://github.com/RealTimeGenomics/rtg-tools/releases/download/3.11/r
     unzip rtg-tools-3.11-linux-x64.zip && \
     rm rtg-tools-3.11-linux-x64.zip
 #COPY rtg.cfg /rtg-tools-3.11/
+RUN touch /rtg-tools-3.11/rtg.cfg
 
 # Environment
 ENV PATH="/rtg-tools-3.11:${PATH}"
