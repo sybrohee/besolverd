@@ -19,7 +19,7 @@ RUN chmod a+x  mosdepth/mosdepth
 RUN wget 'https://github.com/RealTimeGenomics/rtg-tools/releases/download/3.11/rtg-tools-3.11-linux-x64.zip'
 RUN unzip rtg-tools-3.11-linux-x64.zip
 RUN rm  rtg-tools-3.11-linux-x64.zip
-COPY rtg.cfg /rtg-tools-3.11/
+RUN touch rtg.cfg /rtg-tools-3.11/rtg.cfg
 
 # Environment
 ENV PATH="/rtg-tools-3.11:/mosdepth:${PATH}"
