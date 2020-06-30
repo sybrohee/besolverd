@@ -7,7 +7,7 @@ mosdepth, bedtools and rtg tools for our benchmarking.
 
 The tool first runs mosdepth to compute the global coverage per base.
 
- From this file, it will then use bedtools to find the regions covered
+From this file, it will then use bedtools to find the regions covered
 at a depth equal or higher than 0, 5, 10, 20, 30, 42, 50 and 100 and
 intersect those with the "high confidence regions" that are given by the
 GIAB for both reference samples. It then runs the comparaison on those
@@ -32,34 +32,36 @@ tweak around it. Hence, let me know.
 The procedure is quite slow as it deals with big files and there are
 quite a few iterations (3h per benchmark). I would thus advise to make use of the multithreading options (-T).
 
-
 ## INSTALLATION
+
 ```
 docker pull sbrohee/besolverd
 ```
 
 ## RUNNING (with docker)
 
-
 ### Get the options
+
 ```
-docker run  -it besolverd python2.7 besolverd.py -h
+docker run  -it besolverd -h
 ```
 
 ### Run in your home directory being the same user (not as root) having the same mount points within the container
+
 ```
 docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
-/my/home/absolute/path/:/my/home/absolute/path/:rw besolverd.py -h
+/my/home/absolute/path/:/my/home/absolute/path/:rw besolverd -h
 ```
 
 ### Example run on cell line NA24385 with hg38 genome build
 
 ```
 docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
-/data/home:/data/home:rw -it besolverd python2.7 besolverd.py -q
+/data/home:/data/home:rw -it besolverd -q
 INPUTVCF  -b INPUTBAM  -g hg38 -o /outputdir/outputprefix -f INPUTFASTA
 -u NA24385
 ```
+
 ## SOME REMARKS
 
 It is of course not mandatory to use the tool, nor the procedure but at
@@ -70,5 +72,4 @@ I won't be offended if you ask that I adapt, correct or add something to
 the script. Of course, you can also modify the script yourself (even if
 it is never a pleasure to dig into the awful python code of someone else).
 
-Genome build hg19/37 may or may not contain a chr prefix before the chromosome name. If you have that prefix in the VCF and BAM files, you shoud use ```-g hg37chr``` option.
-
+Genome build hg19/37 may or may not contain a chr prefix before the chromosome name. If you have that prefix in the VCF and BAM files, you shoud use `-g hg37chr` option.
