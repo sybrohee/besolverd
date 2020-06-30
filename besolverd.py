@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # This tool automatizes the different steps of the benchmark pipeline
 
 import re
