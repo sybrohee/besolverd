@@ -57,7 +57,7 @@ docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
 
 ```
 docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
-/data/home:/data/home:rw -it besolverd -q
+/data/home:/data/home:rw -it sbrohee/besolverd -q
 INPUTVCF  -b INPUTBAM  -g hg38 -o /outputdir/outputprefix -f INPUTFASTA
 -u NA24385
 ```
