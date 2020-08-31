@@ -76,7 +76,7 @@ Genome build hg19/37 may or may not contain a chr prefix before the chromosome n
 
 # analyse_results.R
 
-This R script creates barplot from the results produced by besolverd.py. There is a huge variety of figures that can be produced from the benchmarking aralysis but at least, this produces something. It requires R with the libraries optparse and data.table.
+This R script creates barplot from the results produced by besolverd.py. There is a variety of figures that can be produced from the benchmarking aralysis and this script produces only a small part of them. It requires R with the libraries optparse and data.table.
 
 ## RUNNING EXAMPLE
 ### Command
