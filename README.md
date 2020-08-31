@@ -93,6 +93,6 @@ Rscript analyse_results.R -i input_directory -o output_directory  -c ULiege,IPG,
 * -c comma separated list of names used in the result file produced by ```besolved.py``` to describe the genetic center where the sample has been sequenced. If the file name contains ULiege, the script will mark this sample has sequenced in ULiege.
 * -i comma separated list of cell line names used in the result file produced by ```besolved.py``` to specify the cell line that is sequenced.
 * -d comma separated list of coverages as they are found in the output file names
-* -k comma separated kits used to produce the WGS library
+* -k comma separated list of kits used to produce the WGS library
 
 
