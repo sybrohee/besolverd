@@ -73,3 +73,26 @@ the script. Of course, you can also modify the script yourself (even if
 it is never a pleasure to dig into the awful python code of someone else).
 
 Genome build hg19/37 may or may not contain a chr prefix before the chromosome name. If you have that prefix in the VCF and BAM files, you shoud use `-g hg37chr` option.
+
+# analyse_results.R
+
+This R script creates barplot from the results produced by besolverd.py. There is a huge variety of figures that can be produced from the benchmarking aralysis but at least, this produces something. It requires R with the libraries optparse and data.table.
+
+## RUNNING EXAMPLE
+### Command
+
+```
+Rscript analyse_results.R -i input_directory -o output_directory  -c ULiege,IPG,KULeuven,UGent,VUB -l NA24385,NA12878 -d 42x,30x,25x -k Truseq,Kapa,NexteraFlex
+
+```
+
+### Argument description
+
+* -i path to a directory that contains all the final files produced by ```besolved.py```. The script will look for all files having suffix _results.tab in all subdirectories of this path.
+* -o path to a directory were the figures will be stored
+* -c comma separated list of names used in the result file produced by ```besolved.py``` to describe the genetic center where the sample has been sequenced. If the file name contains ULiege, the script will mark this sample has sequenced in ULiege.
+* -i comma separated list of cell line names used in the result file produced by ```besolved.py``` to specify the cell line that is sequenced.
+* -d comma separated list of coverages as they are found in the output file names
+* -k comma separated kits used to produce the WGS library
+
+
