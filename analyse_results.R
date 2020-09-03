@@ -1,5 +1,7 @@
 library(optparse)
+library(ggplot2)
 library(data.table)
+library(dplyr) 
 
 # Example command 
 #Rscript analyse_results.R -i results_sub/ -o figures/ -c ULiege,IPG,KULeuven,UGent,VUB -l NA24385,NA12878 -d 42x,30x,25x -k Truseq,Kapa,NexteraFlex
@@ -22,7 +24,7 @@ option_list = list(
     make_option(c("-c", "--centerMatch"),
     	type="character",
     	default=NA, 
-    	help="Strings to be found in the file name to obtain the genetic center id. The different centers must be separated by a comma. e.g. -c Uliege,IPG,KULeuven,UGent,VUB", 
+    	help="Strings to be found in the file name to obtain the genetic center id. The different centers must be separated by a comma. e.g. -c ULiege,IPG,KULeuven,UGent,VUB", 
     	metavar="character"),
     make_option(c("-l", "--cellineMatch"),
     	type="character",
@@ -42,6 +44,8 @@ option_list = list(
     
     
 ); 
+
+
 
 opt_parser = OptionParser(usage = "%prog [options] ", option_list=option_list);
 arguments = parse_args(opt_parser)
@@ -78,6 +82,11 @@ cell.lines.strings <- strsplit(cellineMatch, ",")[[1]]
 kits.strings <- strsplit(kitMatch, ",")[[1]]
 table.list <- list()
 
+
+if (length(results.files) == 0) {
+    stop(paste("Directory",inputDir, "does not contain any result file produced by besolverd.py (suffix : _results.tab"))
+}
+
 for (result.file in results.files) {
     #parse name
     coverage <- NA
@@ -111,6 +120,7 @@ for (result.file in results.files) {
     }     
     results <- fread(paste("cat",result.file ,"| perl -pe 's/\t/ /g'", sep = " "))
     results$coverage <- coverage
+    
     results$center <- center
     results$cell.line <- cell.line
     results$kit <- kit
@@ -152,3 +162,19 @@ for (cell.linei in cell.lines) {
         dev.off()
     }
 }
+setnames(table.dt, 'False-neg', 'FN')
+table.dt %>% 
+  ggplot(aes(x=centerkit,y=FN, fill=centerkit)) +
+  geom_boxplot() + geom_jitter(width=0.1,alpha=0.2) + facet_wrap(~cell.line,ncol = 2) + theme(axis.text.x = element_text(angle = 90))
+ggsave(file.path(outputDir,"results_FN.pdf"))
+
+table.dt %>% 
+  ggplot(aes(x=centerkit,y=Sensitivity, fill=centerkit)) +
+  geom_boxplot() + geom_jitter(width=0.1,alpha=0.2) + theme(axis.text.x = element_text(angle = 90)) + ylim(0.98,1)
+ggsave(file.path(outputDir,"results_sensitivity.pdf"))
+
+table.dt %>% 
+  ggplot(aes(x=centerkit,y=Precision, fill=centerkit)) +
+  geom_boxplot() + geom_jitter(width=0.1,alpha=0.2) + theme(axis.text.x = element_text(angle = 90)) + ylim(0.95,1) 
+ggsave(file.path(outputDir,"results_precision.pdf"))
+
