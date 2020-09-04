@@ -200,6 +200,8 @@ def main(
 
     if mosdepthPath is not None:
         mosdepthExec = mosdepthPath + "/" + mosdepthExec
+    if bedtoolsPath is not None:
+        bedtoolsExec = bedtoolsPath + "/" + bedtoolsExec
     if rtgtoolsPath is not None:
         rtgtoolsExec = rtgtoolsPath + "/" + rtgtoolsExec
     if dataPath is None and not downloadReference:
