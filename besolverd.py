@@ -9,7 +9,6 @@ import subprocess
 import json
 import os
 from pprint import pprint
-import threading
 
 
 def stringIsInt(s):
@@ -53,6 +52,7 @@ def alignAndBenchMark(
     outputPrefix,
     bedtoolsExec,
     rtgtoolsExec,
+    maxthreads
 ):
     print("Analyzing with min coverage " + threshold)
     bedIntersect_file = outputPrefix + "_minCov" + threshold + ".highconfIntersect.bed"
@@ -86,7 +86,8 @@ def alignAndBenchMark(
         + sdf
         + "' -e '"
         + bedIntersect_file
-        + "'"
+        + "' --threads "
+        + str(maxthreads - 1)
     ]
     output = subprocess.check_output(
         "; ".join(cmds), shell=True, stderr=subprocess.STDOUT
@@ -249,9 +250,7 @@ def main(
     jobs = []
     for thri in range(0, len(thresholds)):
         threshold = thresholds[thri]
-        t = threading.Thread(
-            target=alignAndBenchMark,
-            args=(
+        alignAndBenchMark(
                 queryVcfFile,
                 refVcfFile,
                 refBedFile,
@@ -261,19 +260,8 @@ def main(
                 outputPrefix,
                 bedtoolsExec,
                 rtgtoolsExec,
-            ),
-        )
-        jobs.append(t)
-
-    for j in jobs:
-        threads = threading.active_count()
-        while threads > maxthreads:
-            time.sleep(60)
-            threads = threading.active_count()
-        j.start()
-
-    for j in jobs:
-        j.join()
+                maxthreads
+            )
 
     results_file = outputPrefix + "_results.tab"
     cmds = []
