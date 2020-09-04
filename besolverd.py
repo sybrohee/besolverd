@@ -69,9 +69,9 @@ def alignAndBenchMark(
         + bedtoolsExec
         + " intersect "
         + " -a stdin "
-        + " -b "
+        + " -b '"
         + refBedFile
-        + "   > "
+        + "'   > "
         + bedIntersect_file
     ]
     cmds += [
