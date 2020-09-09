@@ -9,7 +9,6 @@ import subprocess
 import json
 import os
 from pprint import pprint
-import threading
 
 
 def stringIsInt(s):
@@ -53,6 +52,7 @@ def alignAndBenchMark(
     outputPrefix,
     bedtoolsExec,
     rtgtoolsExec,
+    maxthreads
 ):
     print("Analyzing with min coverage " + threshold)
     bedIntersect_file = outputPrefix + "_minCov" + threshold + ".highconfIntersect.bed"
@@ -69,9 +69,9 @@ def alignAndBenchMark(
         + bedtoolsExec
         + " intersect "
         + " -a stdin "
-        + " -b "
+        + " -b '"
         + refBedFile
-        + "   > "
+        + "'   > "
         + bedIntersect_file
     ]
     cmds += [
@@ -86,7 +86,8 @@ def alignAndBenchMark(
         + sdf
         + "' -e '"
         + bedIntersect_file
-        + "'"
+        + "' --threads "
+        + str(maxthreads - 1)
     ]
     output = subprocess.check_output(
         "; ".join(cmds), shell=True, stderr=subprocess.STDOUT
@@ -199,6 +200,8 @@ def main(
 
     if mosdepthPath is not None:
         mosdepthExec = mosdepthPath + "/" + mosdepthExec
+    if bedtoolsPath is not None:
+        bedtoolsExec = bedtoolsPath + "/" + bedtoolsExec
     if rtgtoolsPath is not None:
         rtgtoolsExec = rtgtoolsPath + "/" + rtgtoolsExec
     if dataPath is None and not downloadReference:
@@ -249,9 +252,7 @@ def main(
     jobs = []
     for thri in range(0, len(thresholds)):
         threshold = thresholds[thri]
-        t = threading.Thread(
-            target=alignAndBenchMark,
-            args=(
+        alignAndBenchMark(
                 queryVcfFile,
                 refVcfFile,
                 refBedFile,
@@ -261,19 +262,8 @@ def main(
                 outputPrefix,
                 bedtoolsExec,
                 rtgtoolsExec,
-            ),
-        )
-        jobs.append(t)
-
-    for j in jobs:
-        threads = threading.active_count()
-        while threads > maxthreads:
-            time.sleep(60)
-            threads = threading.active_count()
-        j.start()
-
-    for j in jobs:
-        j.join()
+                maxthreads
+            )
 
     results_file = outputPrefix + "_results.tab"
     cmds = []
