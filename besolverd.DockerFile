@@ -43,6 +43,6 @@ RUN mkdir -p /besolverd/data && cd /besolverd/data  && \
 WORKDIR /besolverd
 ADD besolverd.py besolverd.py
 
-ENTRYPOINT [ "python","besolverd.py" ]
+
 
 
