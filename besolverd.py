@@ -232,7 +232,7 @@ def main(
         + " --threads "
         + str(maxthreads - 1)
         + mosdepth_fasta
-        + " -Q 1 -x "
+        + " -Q 1 "
         + mosdepth_prefix
         + " '"
         + queryBamFile
