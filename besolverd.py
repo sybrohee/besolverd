@@ -6,6 +6,7 @@ import re
 import time
 import argparse
 import subprocess
+import threading
 import json
 import os
 from pprint import pprint
@@ -42,21 +43,17 @@ def downloadAndParseReferences(sample, build, dataPath):
     subprocess.check_output("; ".join(commands), shell=True, stderr=subprocess.STDOUT)
 
 
-def alignAndBenchMark(
-    queryVcfFile,
-    refVcfFile,
+def bedAction(
     refBedFile,
     base_coverage_file,
-    sdf,
     threshold,
     outputPrefix,
-    bedtoolsExec,
-    rtgtoolsExec,
-    maxthreads
+    bedtoolsExec
+
 ):
     print("Analyzing with min coverage " + threshold)
     bedIntersect_file = outputPrefix + "_minCov" + threshold + ".highconfIntersect.bed"
-    rtgResultFile = outputPrefix + "_minCov" + threshold + "_vcfEval"
+
     cmds = []
     cmds += [
         "zcat "
@@ -74,6 +71,23 @@ def alignAndBenchMark(
         + "'   > "
         + bedIntersect_file
     ]
+
+    output = subprocess.check_output(
+        "; ".join(cmds), shell=True, stderr=subprocess.STDOUT
+    )
+    print("Determining minimal coverage regions " + threshold + "... Done")
+
+def rtgBenchmark(    
+    queryVcfFile,
+    refVcfFile,
+    sdf,
+    threshold,
+    outputPrefix,
+    rtgtoolsExec,
+    maxRtgthreads):
+    bedIntersect_file = outputPrefix + "_minCov" + threshold + ".highconfIntersect.bed"
+    rtgResultFile = outputPrefix + "_minCov" + threshold + "_vcfEval"    
+    cmds = []
     cmds += [
         rtgtoolsExec
         + " vcfeval -b '"
@@ -87,19 +101,20 @@ def alignAndBenchMark(
         + "' -e '"
         + bedIntersect_file
         + "' --threads "
-        + str(maxthreads - 1)
+        + str(maxRtgthreads)
     ]
     output = subprocess.check_output(
         "; ".join(cmds), shell=True, stderr=subprocess.STDOUT
     )
-    print("Analyzing with min coverage " + threshold + "... Done")
-
+    print("Benchmarking on regions with minimal coverage " + threshold + "... Done")    
+    
 
 def main(
     queryVcfFile,
     queryBamFile,
     genomeBuild,
-    nbthreadsStr,
+    nbRtgthreadsStr,
+    nbBedthreadsStr,
     fastaGenome,
     sample,
     outputPrefix,
@@ -108,6 +123,7 @@ def main(
     bedtoolsPath,
     dataPath,
     downloadReference,
+    picardCmd
 ):
     iscram = False
     # check file existence
@@ -170,7 +186,7 @@ def main(
             + os.path.dirname(outputPrefix)
             + " already exists"
         )
-        exit(0)
+        #exit(0)
     if re.search(".gz$", queryVcfFile) is None:
         print("input vcf " + queryVcfFile + "does not seem to be in a bgzip format")
         exit(0)
@@ -183,14 +199,23 @@ def main(
             + indexQueryVcfFile
         )
         exit(0)
-    maxthreads = 1
-    if nbthreadsStr is None:
-        maxthreads = 1
-    elif not nbthreadsStr is None and stringIsInt(nbthreadsStr):
-        maxthreads = int(nbthreadsStr)
+    maxBedthreads = 1
+    if nbBedthreadsStr  is None:
+        maxBedthreads = 1
+    elif not nbBedthreadsStr is None and stringIsInt(nbBedthreadsStr):
+        maxBedthreads = int(nbBedthreadsStr)
     else:
-        print(nbthreadsStr + " is not a valid number of threads")
+        print(nbBedthreadsStr + " is not a valid number of threads")
         exit(0)
+        
+    maxRtgthreads = 1
+    if nbRtgthreadsStr  is None:
+        maxRtgthreads = 1
+    elif not nbRtgthreadsStr is None and stringIsInt(nbRtgthreadsStr):
+        maxRtgthreads = int(nbRtgthreadsStr)
+    else:
+        print(nbRtgthreadsStr + " is not a valid number of threads")
+        exit(0)        
 
     # Tools and file path
     mosdepthExec = "mosdepth"
@@ -204,6 +229,7 @@ def main(
         bedtoolsExec = bedtoolsPath + "/" + bedtoolsExec
     if rtgtoolsPath is not None:
         rtgtoolsExec = rtgtoolsPath + "/" + rtgtoolsExec
+   
     if dataPath is None and not downloadReference:
         dataPath = os.path.join(current_dir, "data")
     elif dataPath is None and downloadReference:
@@ -230,7 +256,7 @@ def main(
     cmds += [
         mosdepthExec
         + " --threads "
-        + str(maxthreads - 1)
+        + str(maxRtgthreads)
         + mosdepth_fasta
         + " -Q 1 "
         + mosdepth_prefix
@@ -238,6 +264,16 @@ def main(
         + queryBamFile
         + "'"
     ]
+    picardWGSMetrics_results_file = outputPrefix + "_picard_WGSmetrics.txt"
+    #print (picardCmd);
+    if picardCmd is not None:
+        #cmds += ["touch " + picardWGSMetrics_results_file]
+        cmds += [picardCmd 
+            + " CollectWgsMetrics "
+            + " I=" + queryBamFile
+            + " O=" + picardWGSMetrics_results_file 
+            + " R=" + fastaGenome
+        ]
     # from fasta file create the sdf file on the fly
     sdf = outputPrefix + ".sdf"
     cmds += [rtgtoolsExec + " format '" + fastaGenome + "' -o " + sdf]
@@ -252,18 +288,27 @@ def main(
     jobs = []
     for thri in range(0, len(thresholds)):
         threshold = thresholds[thri]
-        alignAndBenchMark(
-                queryVcfFile,
-                refVcfFile,
-                refBedFile,
-                mosdepth_perbase,
-                sdf,
-                threshold,
-                outputPrefix,
-                bedtoolsExec,
-                rtgtoolsExec,
-                maxthreads
-            )
+        t = threading.Thread(target=bedAction, args=(refBedFile,mosdepth_perbase,  threshold, outputPrefix, bedtoolsExec))
+        jobs.append(t)
+    for j in jobs:
+        threads = threading.active_count()
+        while threads > maxBedthreads:
+            time.sleep(60)
+            threads = threading.active_count()
+        j.start()
+
+    for j in jobs:
+            j.join()
+    
+    for thri in range(0, len(thresholds)):
+        threshold = thresholds[thri]
+        rtgBenchmark(queryVcfFile, refVcfFile, sdf,threshold, outputPrefix, rtgtoolsExec, maxRtgthreads);
+        
+        
+        
+
+            
+
 
     results_file = outputPrefix + "_results.tab"
     cmds = []
@@ -330,6 +375,13 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
+        "-p",
+        "--picardCmd",
+        help="picard command : e.g. '/path/to/java /path/to/picard.jar'. Don't forget the quotes",
+        required=False,
+        default=None
+    )    
+    parser.add_argument(
         "-d", "--dataPath", help="path to reference files", required=False, default=None
     )
     parser.add_argument(
@@ -351,15 +403,19 @@ if __name__ == "__main__":
         "-c", "--bedtoolsPath", help="path to bedtools", required=False, default=None
     )
     parser.add_argument(
-        "-T", "--nbthreads", help="number of threads", required=False, default="1"
+        "-T", "--nbBedthreads", help="number of threads for the minimum coverage computation", required=False, default="1"
     )
+    parser.add_argument(
+        "-V", "--nbRtgthreads", help="number of threads for RTG tools and mosdepth", required=False, default="1"
+    )    
     args = parser.parse_args()
 
     main(
         args.queryVcfFile,
         args.queryBamFile,
         args.genomeBuild,
-        args.nbthreads,
+        args.nbBedthreads,
+        args.nbRtgthreads,
         args.fastaGenome,
         args.sample,
         args.outputPrefix,
@@ -368,23 +424,8 @@ if __name__ == "__main__":
         args.bedtoolsPath,
         args.dataPath,
         args.downloadReference,
+        args.picardCmd
     )
 
-    ## Intersect calls bed file with "high confidence regions" provided by GIAB
-    # bedIntersect_file = outputPrefix+"_bedintersect_ref.bed";
-    # bedIntersection_cmd =  'bedtools intersect -a ' + targetBedFile + ' -b ' +  refBedFile + ' > ' + bedIntersect_file;
-    # cmds += [bedIntersection_cmd]
-    ## base coverage within the bed file
-    # base_coverage_file = outputPrefix+"_bedintersect_coverage.tab";
-    # cmds += ['sambamba depth base --min-coverage=0 -L ' + bedIntersect_file + ' -o ' + base_coverage_file +  " " + queryBamFile]
-    ## coverage stratification
-    # stratification_fileprefix = outputPrefix+"_coverage_stratification";
-    # scriptPath = os.path.dirname(os.path.abspath(__file__))
-    # stratArgs = " -c 0,5,10,20,50,100,Inf -m 20,50 "
-    # cmds += ['Rscript '  +  os.path.join(scriptPath,"createCoverageBedStratification.R") + " --chrFormat " + ' -i ' + base_coverage_file + stratArgs + ' -o ' + stratification_fileprefix]
-    ## vcfeval
-    # stratification_filelist = stratification_fileprefix+"_filelist.tab"
-    # cmds += ['hap.py ' + ' -T ' +  bedIntersect_file +  " --threads 4 --no-json --engine vcfeval --engine-vcfeval-template " + "/data/resource/genomes/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.sdf" +   ' --stratification ' + stratification_filelist +
-    #' -r ' + fasta + ' -o ' + outputPrefix + " " +
-    # refVcfFile + " " + queryVcfFile]
+
 

@@ -19,18 +19,20 @@ summary results of all iterations.
 I made the the script (besolved.py) available via dockerhub. This image
 (which is a bit heavy) does contain all the reference files for hg37 and
 hg38. Provided you run it within the docker image, all you have to
-provide are
+provide is
 
 - VCF file delivered by your pipeline
 - BAM file that was created by your pipeline
 - Genome fasta file used for the alignment
 
-The chromosomes must be encoded with the chr prefix before the
-chromosomes id. If it is a real problem, I can of course figure out a
-tweak around it. Hence, let me know.
+We also added the possibility to use picard CollectWgsMetrics. It is not mandatory to use it as it is a really slow program. To use it, you must specify a to run a valid version of Picard with option (e.g. -p 'java -jar /path/to/picard.jar'). picard.jar is present in the docker (see below).
 
 The procedure is quite slow as it deals with big files and there are
-quite a few iterations (3h per benchmark). I would thus advise to make use of the multithreading options (-T).
+quite a few iterations (3h per benchmark). I would thus advise to make use of the multithreading options (-T and -V).
+
+* -T / --nbBedthreads : number of threads that are run simultaneously when computing the threshold.
+* -V / --nbRtgthreads : number of threads for multithreaded tools such as mosdepth and rtg-tools
+
 
 ## INSTALLATION
 
@@ -43,23 +45,32 @@ docker pull sbrohee/besolverd
 ### Get the options
 
 ```
-docker run  -it besolverd -h
+docker run  -it besolverd python besolverd.py -h
 ```
 
 ### Run in your home directory being the same user (not as root) having the same mount points within the container
 
 ```
 docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
-/my/home/absolute/path/:/my/home/absolute/path/:rw besolverd -h
+/my/home/absolute/path/:/my/home/absolute/path/:rw python besolverd.py  -h
 ```
 
-### Example run on cell line NA24385 with hg38 genome build
+### Example run on cell line NA24385 with hg38 genome build with 4 threads
 
 ```
 docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
-/data/home:/data/home:rw -it sbrohee/besolverd -q
+/data/home:/data/home:rw -it sbrohee/besolverd python besolverd.py -q
 INPUTVCF  -b INPUTBAM  -g hg38 -o /outputdir/outputprefix -f INPUTFASTA
--u NA24385
+-u NA24385 -T 4 -V 4 
+```
+
+### Example run on cell line NA24385 with hg38 genome build using picard CollectWgsMetrics
+
+```
+docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
+/data/home:/data/home:rw -it sbrohee/besolverd python besolverd.py -q
+INPUTVCF  -b INPUTBAM  -g hg38 -o /outputdir/outputprefix -f INPUTFASTA
+-u NA24385 -T 4 -V 4 -p 'java -jar /picard/picard.jar'
 ```
 
 ## SOME REMARKS
@@ -76,7 +87,7 @@ Genome build hg19/37 may or may not contain a chr prefix before the chromosome n
 
 # analyse_results.R
 
-This R script creates barplot from the results produced by besolverd.py. There is a variety of figures that can be produced from the benchmarking aralysis and this script produces only a small part of them. It requires R with the libraries optparse and data.table.
+This R script creates barplot from the results produced by besolverd.py. There is a variety of barplots that can be produced from the benchmarking aralysis and this script produces only a small part of them. It requires R with the libraries optparse, data.table and ggplot2. Moreover, as the bars are close together, some boxplots are also used for comparisons between the different centers.
 
 ## RUNNING EXAMPLE
 ### Command
