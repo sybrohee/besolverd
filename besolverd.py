@@ -186,7 +186,7 @@ def main(
             + os.path.dirname(outputPrefix)
             + " already exists"
         )
-        #exit(0)
+        exit(0)
     if re.search(".gz$", queryVcfFile) is None:
         print("input vcf " + queryVcfFile + "does not seem to be in a bgzip format")
         exit(0)
