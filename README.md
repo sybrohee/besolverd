@@ -78,9 +78,8 @@ INPUTVCF  -b INPUTBAM  -g hg38 -o /outputdir/outputprefix -f INPUTFASTA
 It is of course not mandatory to use the tool, nor the procedure but at
 least it can be used as a starting point strategy to evaluate our pipelines.
 
-I have been the only developer of the script so it might contain error.
-I won't be offended if you ask that I adapt, correct or add something to
-the script. Of course, you can also modify the script yourself (even if
+This script might contain errors and I won't be offended if you ask that I adapt, correct or add something to
+it. Of course, you can also modify it yourself (even if
 it is never a pleasure to dig into the awful python code of someone else).
 
 Genome build hg19/37 may or may not contain a chr prefix before the chromosome name. If you have that prefix in the VCF and BAM files, you shoud use `-g hg37chr` option.
