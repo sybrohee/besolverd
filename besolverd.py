@@ -123,9 +123,12 @@ def main(
     bedtoolsPath,
     dataPath,
     downloadReference,
-    picardCmd
+    picardCmd,
+    clean
 ):
     iscram = False
+    largeFiles = list()
+    largeDirs = list()
     # check file existence
     if not os.path.exists(queryVcfFile):
         print("Error : Mandatory file queryVcfFile " + queryVcfFile + " does not exist")
@@ -252,6 +255,8 @@ def main(
     mosdepth_prefix = outputPrefix + "_depth"
     mosdepth_perbase = mosdepth_prefix + ".per-base.bed.gz"
     mosdepth_summary = mosdepth_prefix + ".summary.txt"
+    largeFiles.append(mosdepth_perbase)
+    
     cmds = ["mkdir -p " + os.path.dirname(outputPrefix)]
     cmds += [
         mosdepthExec
@@ -303,8 +308,10 @@ def main(
     for thri in range(0, len(thresholds)):
         threshold = thresholds[thri]
         rtgBenchmark(queryVcfFile, refVcfFile, sdf,threshold, outputPrefix, rtgtoolsExec, maxRtgthreads);
-        
-        
+        bedIntersect_file = outputPrefix + "_minCov" + threshold + ".highconfIntersect.bed"
+        rtgDir = outputPrefix + "_minCov" + threshold + "_vcfEval"
+        largeFiles.append(bedIntersect_file)
+        largeDirs.append(rtgDir)
         
 
             
@@ -330,7 +337,13 @@ def main(
     output = subprocess.check_output(
         "; ".join(cmds), shell=True, stderr=subprocess.STDOUT
     )
-    print(output)
+    # remove large files
+    if clean:
+        rmcmd = "rm "+ " ".join(largeFiles)
+        rmcmd += "; rm -rf " + " ".join(largeDirs)
+        output = subprocess.check_output(rmcmd, shell=True, stderr=subprocess.STDOUT)
+        print(rmcmd)
+
 
 
 if __name__ == "__main__":
@@ -389,7 +402,7 @@ if __name__ == "__main__":
         "--downloadReference",
         help="should the reference files be downloaded",
         required=False,
-        action="store_true",
+        action="store_true"
     )
     parser.add_argument(
         "-u",
@@ -407,7 +420,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-V", "--nbRtgthreads", help="number of threads for RTG tools and mosdepth", required=False, default="1"
-    )    
+    )
+    parser.add_argument(
+        "-y", "--clean", help="clean non needed files after execution",         required=False,
+        action="store_true"
+    )     
     args = parser.parse_args()
 
     main(
@@ -424,7 +441,8 @@ if __name__ == "__main__":
         args.bedtoolsPath,
         args.dataPath,
         args.downloadReference,
-        args.picardCmd
+        args.picardCmd,
+        args.clean
     )
 
 
