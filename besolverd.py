@@ -102,6 +102,7 @@ def rtgBenchmark(
         + bedIntersect_file
         + "' --threads "
         + str(maxRtgthreads)
+        + " --all-records"
     ]
     output = subprocess.check_output(
         "; ".join(cmds), shell=True, stderr=subprocess.STDOUT
