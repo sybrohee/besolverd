@@ -1,9 +1,9 @@
 library(optparse)
 library(ggplot2)
 library(data.table)
-library(dplyr) 
+library(dplyr)
 
-# Example command 
+# Example command
 #Rscript analyse_results.R -i results_sub/ -o figures/ -c ULiege,IPG,KULeuven,UGent,VUB -l NA24385,NA12878 -d 42x,30x,25x -k Truseq,Kapa,NexteraFlex
 
 
@@ -11,39 +11,39 @@ library(dplyr)
 #########################
 ## Define the arguments
 option_list = list(
-    make_option(c("-i", "--inputDir"), 
+    make_option(c("-i", "--inputDir"),
     	type="character",
-    	default=NA, 
+    	default=NA,
     	help="Directory containing the directories with all the final results files (prefix _results.tab)", 
     	metavar="character"),
-    make_option(c("-o", "--outputDir"), 
+    make_option(c("-o", "--outputDir"),
     	type="character",
-    	default=NA, 
-    	help="Directory were the results will be written", 
-    	metavar="character"),    	
+    	default=NA,
+    	help="Directory were the results will be written",
+    	metavar="character"),
     make_option(c("-c", "--centerMatch"),
     	type="character",
-    	default=NA, 
+    	default=NA,
     	help="Strings to be found in the file name to obtain the genetic center id. The different centers must be separated by a comma. e.g. -c ULiege,IPG,KULeuven,UGent,VUB", 
     	metavar="character"),
     make_option(c("-l", "--cellineMatch"),
     	type="character",
-    	default=NA, 
+    	default=NA,
     	help="Strings to be found in the file name to obtain the cell line. The different cell lines must be separated by a comma. e.g. -l NA24385,NA12878", 
-    	metavar="character"),  
+    	metavar="character"),
     make_option(c("-d", "--coverageMatch"),
     	type="character",
-    	default=NA, 
+    	default=NA,
     	help="Strings to be found in the file name to obtain the coverage. The strings must be comma separated. e.g. -d 42x,30x,25x ", 
     	metavar="character"),
     make_option(c("-k", "--kitMatch"),
     	type="character",
-    	default=NA, 
+    	default=NA,
     	help="Strings to be found in the file name to obtain the kit name The strings must be comma separated. e.g. -d Truseq,Kapa,NexteraFlex ", 
-    	metavar="character")    	
-    
-    
-); 
+    	metavar="character")
+
+
+);
 
 
 
@@ -75,7 +75,7 @@ if (!file.exists(outputDir)) {
     stop(paste("Directory" , outputDir, "does not seem to exist. Please check"));
 }
 
-results.files <- list.files(path = opt$inputDir, pattern = "_results.tab$", full.names = T, recursive= T)
+results.files <- list.files(path = inputDir, pattern = "_results.tab$", full.names = T, recursive= T)
 coverage.strings <- strsplit(coverageMatch, ",")[[1]]
 center.strings <- strsplit(centerMatch, ",")[[1]]
 cell.lines.strings <- strsplit(cellineMatch, ",")[[1]]
@@ -111,16 +111,17 @@ for (result.file in results.files) {
         if (grepl(kit.string, result.file)) {
             kit <- kit.string
         }
-    }    
+    }
     if (is.na(center)) {
         stop(paste("Could not find center for file", result.file))
-    } 
+    }
     if (is.na(coverage)) {
         stop(paste("Could not find coverage for file", result.file))
-    }     
-    results <- fread(paste("cat",result.file ,"| perl -pe 's/\t/ /g'", sep = " "))
+    }
+    results <- read.table(result.file,skip=1)
+    colnames(results)=strsplit(as.character(read.table(result.file, nrow = 1)$V1),"\\\\t")[[1]]
+
     results$coverage <- coverage
-    
     results$center <- center
     results$cell.line <- cell.line
     results$kit <- kit
@@ -163,18 +164,17 @@ for (cell.linei in cell.lines) {
     }
 }
 setnames(table.dt, 'False-neg', 'FN')
-table.dt %>% 
+table.dt %>%
   ggplot(aes(x=centerkit,y=FN, fill=centerkit)) +
   geom_boxplot() + geom_jitter(width=0.1,alpha=0.2) + facet_wrap(~cell.line,ncol = 2) + theme(axis.text.x = element_text(angle = 90))
 ggsave(file.path(outputDir,"results_FN.pdf"))
 
-table.dt %>% 
+table.dt %>%
   ggplot(aes(x=centerkit,y=Sensitivity, fill=centerkit)) +
   geom_boxplot() + geom_jitter(width=0.1,alpha=0.2) + theme(axis.text.x = element_text(angle = 90)) + ylim(0.98,1)
 ggsave(file.path(outputDir,"results_sensitivity.pdf"))
 
-table.dt %>% 
+table.dt %>%
   ggplot(aes(x=centerkit,y=Precision, fill=centerkit)) +
   geom_boxplot() + geom_jitter(width=0.1,alpha=0.2) + theme(axis.text.x = element_text(angle = 90)) + ylim(0.95,1) 
 ggsave(file.path(outputDir,"results_precision.pdf"))
-
