@@ -308,7 +308,7 @@ def main(
     for thri in range(0, len(thresholds)):
         threshold = thresholds[thri]
         t = threading.Thread(target=bedAction, args=(refBedFile,mosdepth_perbase,  threshold, outputPrefix, bedtoolsExec))
-        #jobs.append(t)
+        jobs.append(t)
     for j in jobs:
         threads = threading.active_count()
         while threads > maxBedthreads:
