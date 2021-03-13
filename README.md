@@ -16,7 +16,7 @@ region with rtg-tool.
 At the very end, it creates a small tab delimited file containing the
 summary results of all iterations.
 
-I made the the script (besolved.py) available via dockerhub. This image
+I made the the script (besolverd.py) available via dockerhub. This image
 (which is a bit heavy) does contain all the reference files for hg37 and
 hg38. Provided you run it within the docker image, all you have to
 provide is
@@ -33,6 +33,7 @@ quite a few iterations (3h per benchmark). I would thus advise to make use of th
 * -T / --nbBedthreads : number of threads that are run simultaneously when computing the threshold.
 * -V / --nbRtgthreads : number of threads for multithreaded tools such as mosdepth and rtg-tools
 
+The tool also discriminates between snp and indels to compute the statistics. Moreover, it can only make the computation on the subsets of passing filter variants.
 
 ## INSTALLATION
 
@@ -64,6 +65,16 @@ INPUTVCF  -b INPUTBAM  -g hg38 -o /outputdir/outputprefix -f INPUTFASTA
 -u NA24385 -T 4 -V 4 
 ```
 
+### Example run on cell line NA24385 with hg38 genome build with 4 threads, considering only the variants of the query VCF that pass the soft filter (PASS tag)
+
+```
+docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
+/data/home:/data/home:rw -it sbrohee/besolverd python besolverd.py -q
+INPUTVCF  -b INPUTBAM  -g hg38 -o /outputdir/outputprefix -f INPUTFASTA
+-u NA24385 -T 4 -V 4 --passingOnly
+```
+
+
 ### Example run on cell line NA24385 with hg38 genome build using picard CollectWgsMetrics
 
 ```
@@ -72,6 +83,9 @@ docker run -u $(id -u ${USER}):$(id -g ${USER}) -v
 INPUTVCF  -b INPUTBAM  -g hg38 -o /outputdir/outputprefix -f INPUTFASTA
 -u NA24385 -T 4 -V 4 -p 'java -jar /picard/picard.jar'
 ```
+
+
+
 
 ## SOME REMARKS
 
@@ -86,7 +100,7 @@ Genome build hg19/37 may or may not contain a chr prefix before the chromosome n
 
 # analyse_results.R
 
-This R script creates barplot from the results produced by besolverd.py. There is a variety of barplots that can be produced from the benchmarking aralysis and this script produces only a small part of them. It requires R with the libraries optparse, data.table and ggplot2. Moreover, as the bars are close together, some boxplots are also used for comparisons between the different centers.
+This R script creates barplots from the results produced by besolverd.py. There is a variety of barplots that can be produced from the benchmarking aralysis and this script produces only a small part of them. It requires R with the libraries `optparse`, `data.table` and `ggplot2`. Moreover, as the bars are close together, some boxplots are also used for comparisons between the different centers.
 
 ## RUNNING EXAMPLE
 ### Command
@@ -101,8 +115,8 @@ Rscript analyse_results.R -i input_directory -o output_directory  -c ULiege,IPG,
 * -i path to a directory that contains all the final files produced by ```besolved.py```. The script will look for all files having suffix _results.tab in all subdirectories of this path.
 * -o path to a directory were the figures will be stored
 * -c comma separated list of names used in the result file produced by ```besolved.py``` to describe the genetic center where the sample has been sequenced. If the file name contains ULiege, the script will mark this sample has sequenced in ULiege.
-* -i comma separated list of cell line names used in the result file produced by ```besolved.py``` to specify the cell line that is sequenced.
+* -i comma separated list of cell line names used in the result file produced by ```besolverd.py``` to specify the cell line that is sequenced.
 * -d comma separated list of coverages as they are found in the output file names
 * -k comma separated list of kits used to produce the WGS library
-* -r/--passingOnly only variants with PASS tag will be taken into account
+
 
