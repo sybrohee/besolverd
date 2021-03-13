@@ -84,26 +84,37 @@ def rtgBenchmark(
     threshold,
     outputPrefix,
     rtgtoolsExec,
+    passingOnly,
+    snp,
     maxRtgthreads):
-    bedIntersect_file = outputPrefix + "_minCov" + threshold + ".highconfIntersect.bed"
-    rtgResultFile = outputPrefix + "_minCov" + threshold + "_vcfEval"    
     cmds = []
-    cmds += [
-        rtgtoolsExec
-        + " vcfeval -b '"
-        + refVcfFile
-        + "' -c '"
-        + queryVcfFile
-        + "' -o '"
-        + rtgResultFile
-        + "' -t '"
-        + sdf
-        + "' -e '"
-        + bedIntersect_file
-        + "' --threads "
-        + str(maxRtgthreads)
-        + " --all-records"
-    ]
+    bedIntersect_file = outputPrefix + "_minCov" + threshold + ".highconfIntersect.bed"
+    
+    rtgResultFile = ""
+    refVcfFileSnp = refVcfFile
+    queryVcfFileSnp = queryVcfFile
+    snpParse = ""
+    passingOnlyString = "_passingongly"
+    if (not passingOnly):
+        passingOnlyString = "_allrecords"
+    if snp == True:
+        rtgResultFile = outputPrefix + "_minCov" +threshold + "_snp"+passingOnlyString+ "_vcfEval" 
+        refVcfFileSnp = outputPrefix + ".snp.ref.vcf.gz"
+        queryVcfFilesnp = outputPrefix + ".snp.vcf.gz"
+        snpParse = rtgtoolsExec + " vcffilter --snps-only " +  " -i " + refVcfFile  + " -o " + refVcfFileSnp + " ; "
+        snpParse += rtgtoolsExec + " vcffilter --snps-only " +  " -i " + queryVcfFile  + " -o " + queryVcfFilesnp + " ; "
+    else:
+        rtgResultFile = outputPrefix + "_minCov" + threshold + "_indel" + passingOnlyString+"_vcfEval" 
+        refVcfFileSnp = outputPrefix + ".indel.ref.vcf.gz"
+        queryVcfFilesnp = outputPrefix + ".indel.query.vcf.gz"        
+        snpParse = rtgtoolsExec + " vcffilter --non-snps-only " +  " -i " + refVcfFile  + " -o " + refVcfFileSnp + " ; "
+        snpParse += rtgtoolsExec + " vcffilter --non-snps-only " +  " -i " + queryVcfFile  + " -o " + queryVcfFilesnp + " ; "
+    
+    cmdString = rtgtoolsExec         + " vcfeval -b '"         + refVcfFileSnp        + "' -c '"        + queryVcfFilesnp        + "' -o '"        + rtgResultFile        + "' -t '"        + sdf        + "' -e '"        +bedIntersect_file        + "' --threads "        + str(maxRtgthreads)
+    if (not passingOnly):
+        cmdString +=   " --all-records"
+    
+    cmds += [snpParse + cmdString]
     output = subprocess.check_output(
         "; ".join(cmds), shell=True, stderr=subprocess.STDOUT
     )
@@ -125,7 +136,8 @@ def main(
     dataPath,
     downloadReference,
     picardCmd,
-    clean
+    clean,
+    passingOnly
 ):
     iscram = False
     largeFiles = list()
@@ -190,7 +202,7 @@ def main(
             + os.path.dirname(outputPrefix)
             + " already exists"
         )
-        exit(0)
+        #exit(0)
     if re.search(".gz$", queryVcfFile) is None:
         print("input vcf " + queryVcfFile + "does not seem to be in a bgzip format")
         exit(0)
@@ -290,12 +302,13 @@ def main(
 
     # Intersect the coverage with the regions of interest
     thresholds = ["0", "5", "10", "20", "30", "42", "50", "100"]
+    #thresholds = ["42", "50", "100"]
     # thresholds = ["50"]
     jobs = []
     for thri in range(0, len(thresholds)):
         threshold = thresholds[thri]
         t = threading.Thread(target=bedAction, args=(refBedFile,mosdepth_perbase,  threshold, outputPrefix, bedtoolsExec))
-        jobs.append(t)
+        #jobs.append(t)
     for j in jobs:
         threads = threading.active_count()
         while threads > maxBedthreads:
@@ -308,7 +321,10 @@ def main(
     
     for thri in range(0, len(thresholds)):
         threshold = thresholds[thri]
-        rtgBenchmark(queryVcfFile, refVcfFile, sdf,threshold, outputPrefix, rtgtoolsExec, maxRtgthreads);
+        doonlysnp = True
+        rtgBenchmark(queryVcfFile, refVcfFile, sdf,threshold, outputPrefix, rtgtoolsExec, passingOnly,  doonlysnp, maxRtgthreads);
+        doonlysnp = False        
+        rtgBenchmark(queryVcfFile, refVcfFile, sdf,threshold, outputPrefix, rtgtoolsExec, passingOnly,  doonlysnp, maxRtgthreads);
         bedIntersect_file = outputPrefix + "_minCov" + threshold + ".highconfIntersect.bed"
         rtgDir = outputPrefix + "_minCov" + threshold + "_vcfEval"
         largeFiles.append(bedIntersect_file)
@@ -321,16 +337,16 @@ def main(
     results_file = outputPrefix + "_results.tab"
     cmds = []
     cmds += [
-        'echo  "\\tfileName\\tThreshold\\tTrue-pos-baseline\\tTrue-pos-call\\tFalse-pos\\tFalse-neg\\tPrecision\\tSensitivity\\tF-measure" > '
+        'echo  "Threshold\\ttype\\tfilter\\tfileName\\t\\tTrue-pos-baseline\\tTrue-pos-call\\tFalse-pos\\tFalse-neg\\tPrecision\\tSensitivity\\tF-measure" > '
         + results_file
     ]
     cmds += [
         "find "
         + os.path.dirname(outputPrefix)
-        + " -name '*summary.txt' | grep Eval | xargs awk '{print FILENAME $0}' | grep None | perl -pe 's/ +/\\t/' | perl -pe 's/summary.txt//' | perl -pe 's/_vcfEval//'   | sort > /tmp/results.tmp"
+        + " -name '*summary.txt' | grep Eval | xargs awk '{print FILENAME $0}' | grep None | perl -pe 's/ +/\\t/g' | perl -pe 's/summary.txt//' | perl -pe 's/_vcfEval//'   | sort > /tmp/results.tmp"
     ]
     cmds += [
-        " cat /tmp/results.tmp | cut -f 1 | perl -pe 's/.*minCov([0-9]+)\/$/$1/' > /tmp/left"
+        " cat /tmp/results.tmp | cut -f 1 | perl -pe 's/.*minCov([0-9]+)_([a-z]+)_([a-z]+)\/$/$1\\t$2\\t$3/' > /tmp/left"
     ]
     cmds += ["paste /tmp/left /tmp/results.tmp| sort -n >> " + results_file]
     # cmds += ["rm  results.tmp left" ]
@@ -425,7 +441,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "-y", "--clean", help="clean non needed files after execution",         required=False,
         action="store_true"
-    )     
+    )
+    parser.add_argument(
+        "-r", "--passingOnly", help="make the vcf evaluation only for the variants passing filter (does not make use of  --all-records option)",         required=False,
+        action="store_true"
+    )    
     args = parser.parse_args()
 
     main(
@@ -443,7 +463,8 @@ if __name__ == "__main__":
         args.dataPath,
         args.downloadReference,
         args.picardCmd,
-        args.clean
+        args.clean,
+        args.passingOnly
     )
 
 

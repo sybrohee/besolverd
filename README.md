@@ -104,5 +104,5 @@ Rscript analyse_results.R -i input_directory -o output_directory  -c ULiege,IPG,
 * -i comma separated list of cell line names used in the result file produced by ```besolved.py``` to specify the cell line that is sequenced.
 * -d comma separated list of coverages as they are found in the output file names
 * -k comma separated list of kits used to produce the WGS library
-
+* -r/--passingOnly only variants with PASS tag will be taken into account
 
