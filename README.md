@@ -82,7 +82,7 @@ This script might contain errors and I won't be offended if you ask that I adapt
 it. Of course, you can also modify it yourself (even if
 it is never a pleasure to dig into the awful python code of someone else).
 
-Genome build hg19/37 may or may not contain a chr prefix before the chromosome name. If you have that prefix in the VCF and BAM files, you shoud use `-g hg37chr` option.
+Genome build hg19/37 may or may not contain a chr prefix before the chromosome name. If you have that prefix in the VCF and BAM files, you should use `-g hg37chr` option.
 
 # analyse_results.R
 
