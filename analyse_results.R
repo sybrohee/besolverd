@@ -14,7 +14,7 @@ option_list = list(
     make_option(c("-i", "--inputDir"),
     	type="character",
     	default=NA,
-    	help="Directory containing the directories with all the final results files (prefix _results.tab)", 
+    	help="Directory containing the directories with all the final results files (suffix _results.tab)", 
     	metavar="character"),
     make_option(c("-o", "--outputDir"),
     	type="character",
@@ -88,6 +88,7 @@ if (length(results.files) == 0) {
 }
 
 for (result.file in results.files) {
+    
     #parse name
     coverage <- NA
     center <- NA
@@ -118,8 +119,11 @@ for (result.file in results.files) {
     if (is.na(coverage)) {
         stop(paste("Could not find coverage for file", result.file))
     }
-    results <- read.table(result.file,skip=1)
-    colnames(results)=strsplit(as.character(read.table(result.file, nrow = 1)$V1),"\\\\t")[[1]]
+    results <- fread(result.file)
+#     colnames(results)=strsplit(as.character(read.table(result.file, nrow = 1)$V1),"\\\\t")[[1]]
+    
+
+    
 
     results$coverage <- coverage
     results$center <- center
@@ -130,7 +134,7 @@ for (result.file in results.files) {
 }
 
 table.dt <- rbindlist(table.list)
-# print(table.dt)
+ print(table.dt)
 table.dt$centerkit <- apply(table.dt[,.(center, kit)],1,paste, collapse = "_")
 
 
